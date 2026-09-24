@@ -1,0 +1,60 @@
+﻿@model List<AccessEase.Models.Project>
+@using AccessEase.Models
+
+@{
+    ViewData["Title"] = "UI Validation Settings";
+    var settings = ViewBag.Settings as List<ProjectUiValidationSetting> ?? new List<ProjectUiValidationSetting>();
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+            <h2 class="fw-bold mb-4">UI Validation Settings</h2>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+
+            @if (Model == null || !Model.Any())
+            {
+                <div class="alert alert-info mb-0">No projects found.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Project</th>
+                                <th>Configured</th>
+                                <th>Min Click Target</th>
+                                <th style="width: 140px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model)
+                            {
+                                var setting = settings.FirstOrDefault(x => x.ProjectId == p.Id);
+
+                                <tr>
+                                    <td>@p.Name</td>
+                                    <td>@(setting != null ? "Yes" : "Default")</td>
+                                    <td>@(setting?.MinClickTargetSize ?? 32) px</td>
+                                    <td>
+                                        <a asp-controller="UiValidationSettings"
+                                           asp-action="Edit"
+                                           asp-route-projectId="@p.Id"
+                                           class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                            Configure
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
