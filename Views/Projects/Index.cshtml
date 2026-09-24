@@ -1,0 +1,158 @@
+﻿@model List<AccessEase.Models.Project>
+
+@{
+    ViewData["Title"] = "Project Management";
+    Layout = "_Layout";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Manage projects, assign developers, and maintain project information in one place.
+            </p>
+        </div>
+
+        <a asp-controller="Projects" asp-action="Create" class="primary-btn">
+            New Project
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="app-alert success">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="empty-state-box">
+            <h4>No projects found</h4>
+            <p>Create your first project to start assigning developers and managing scans.</p>
+            <a asp-controller="Projects" asp-action="Create" class="primary-btn mt-2">
+                Create Project
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="history-table-wrap">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Project Name</th>
+                        <th>Description</th>
+                        <th>Default URL</th>
+                        <th>Members</th>
+                        <th>Created At</th>
+                        <th style="width: 240px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="history-id">#@p.Id</span>
+                            </td>
+                            <td>
+                                <div class="history-url fw-semibold">@p.Name</div>
+                            </td>
+                            <td>
+                                <div class="project-desc">
+                                    @(string.IsNullOrWhiteSpace(p.Description) ? "-" : p.Description)
+                                </div>
+                            </td>
+                            <td>
+                                <div class="project-url">
+                                    @(string.IsNullOrWhiteSpace(p.DefaultUrl) ? "-" : p.DefaultUrl)
+                                </div>
+                            </td>
+                            <td>
+                                @if (p.ProjectMembers != null && p.ProjectMembers.Any(x => x.AppUser != null))
+                                {
+                                    <div class="member-list">
+                                        @foreach (var member in p.ProjectMembers.Where(x => x.AppUser != null))
+                                        {
+                                            <span class="member-chip">@member.AppUser!.FullName</span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No members</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="history-time">@p.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</div>
+                            </td>
+                            <td>
+                                <div class="table-action-menu">
+                                    <button type="button" class="action-menu-toggle" onclick="toggleActionMenu(this)">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+
+                                    <div class="action-menu-dropdown">
+                                        <a asp-controller="Projects"
+                                           asp-action="Edit"
+                                           asp-route-id="@p.Id"
+                                           class="action-menu-item">
+                                            <i class="bi bi-pencil-square"></i>
+                                            <span>Edit</span>
+                                        </a>
+
+                                        <a asp-controller="Projects"
+                                           asp-action="ManageMembers"
+                                           asp-route-id="@p.Id"
+                                           class="action-menu-item">
+                                            <i class="bi bi-people"></i>
+                                            <span>Members</span>
+                                        </a>
+
+                                        <form asp-controller="Projects"
+                                              asp-action="Delete"
+                                              method="post"
+                                              onsubmit="return confirm('Are you sure you want to delete this project?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@p.Id" />
+                                            <button type="submit" class="action-menu-item danger">
+                                                <i class="bi bi-trash"></i>
+                                                <span>Delete</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function toggleActionMenu(button) {
+            const currentMenu = button.nextElementSibling;
+
+            document.querySelectorAll('.action-menu-dropdown').forEach(menu => {
+                if (menu !== currentMenu) {
+                    menu.classList.remove('show');
+                }
+            });
+
+            currentMenu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.table-action-menu')) {
+                document.querySelectorAll('.action-menu-dropdown').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    </script>
+}

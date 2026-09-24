@@ -1,0 +1,80 @@
+﻿@model AccessEase12.ViewModels.ProjectFormViewModel
+
+@{
+    ViewData["Title"] = "Create Project";
+    Layout = "_Layout";
+}
+
+<div class="project-page-grid">
+    <div class="app-card project-summary-card">
+        <div class="project-summary-top">
+            <div class="project-avatar-circle">
+                +
+            </div>
+
+            <div>
+                <h2 class="project-name">New Project</h2>
+                <div class="project-status-badge">Project Setup</div>
+            </div>
+        </div>
+
+        <div class="project-summary-info">
+            <div class="project-info-item">
+                <span class="project-info-label">Project Name</span>
+                <span class="project-info-value">Not created yet</span>
+            </div>
+
+            <div class="project-info-item">
+                <span class="project-info-label">Default URL</span>
+                <span class="project-info-value">Not set</span>
+            </div>
+        </div>
+
+        <div class="project-summary-note">
+            Create a new project and define its basic details before assigning members and running scans.
+        </div>
+    </div>
+
+    <div class="app-card project-form-card">
+        <div class="section-header compact-page-header">
+            <div>
+                <p class="section-subtitle mb-0">
+                    Add a new project and define its basic details before assigning members.
+                </p>
+            </div>
+        </div>
+
+        <form asp-action="Create" method="post" class="project-edit-form-grid">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="All" class="app-alert danger validation-summary"></div>
+
+            <div class="form-block full">
+                <label asp-for="Name" class="form-label fw-semibold"></label>
+                <input asp-for="Name" class="form-input" placeholder="Enter project name" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <div class="form-block full">
+                <label asp-for="Description" class="form-label fw-semibold"></label>
+                <textarea asp-for="Description" class="form-input form-textarea" placeholder="Enter project description"></textarea>
+                <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+
+            <div class="form-block full">
+                <label asp-for="DefaultUrl" class="form-label fw-semibold"></label>
+                <input asp-for="DefaultUrl" class="form-input" placeholder="https://example.com" />
+                <span asp-validation-for="DefaultUrl" class="text-danger small"></span>
+            </div>
+
+            <div class="project-action-row">
+                <button type="submit" class="primary-btn">Save Project</button>
+                <a asp-controller="Projects" asp-action="Index" class="secondary-btn project-btn-inline">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

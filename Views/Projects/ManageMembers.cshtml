@@ -1,0 +1,58 @@
+﻿@model AccessEase12.ViewModels.ProjectManageMembersViewModel
+
+@{
+    ViewData["Title"] = "Manage Project Members";
+    Layout = "_Layout";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Project: <strong>@Model.ProjectName</strong>
+            </p>
+        </div>
+    </div>
+
+    <form asp-action="ManageMembers" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="ProjectId" type="hidden" />
+        <input asp-for="ProjectName" type="hidden" />
+
+        @if (Model.AllDevelopers == null || !Model.AllDevelopers.Any())
+        {
+            <div class="empty-state-box">
+                <h4>No developer accounts found</h4>
+                <p>Create or register developer accounts first before assigning members to this project.</p>
+            </div>
+        }
+        else
+        {
+            <div class="member-grid">
+                @foreach (var dev in Model.AllDevelopers)
+                {
+                    var isChecked = Model.SelectedUserIds != null && Model.SelectedUserIds.Contains(dev.Id);
+
+                    <label class="member-select-card @(isChecked ? "selected" : "")" for="dev_@dev.Id">
+                        <input class="member-checkbox"
+                               type="checkbox"
+                               name="SelectedUserIds"
+                               value="@dev.Id"
+                               id="dev_@dev.Id"
+                               @(isChecked ? "checked" : "") />
+
+                        <div class="member-card-content">
+                            <div class="member-card-name">@dev.FullName</div>
+                            <div class="member-card-email">@dev.Email</div>
+                        </div>
+                    </label>
+                }
+            </div>
+        }
+
+        <div class="action-row left-actions mt-4">
+            <button type="submit" class="primary-btn">Save Members</button>
+            <a asp-controller="Projects" asp-action="Index" class="secondary-btn">Back</a>
+        </div>
+    </form>
+</div>
