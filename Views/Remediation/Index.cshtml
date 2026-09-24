@@ -1,0 +1,220 @@
+﻿@model List<AccessEase.Models.RemediationIssue>
+@using AccessEase.Models
+
+@{
+    ViewData["Title"] = "Track Remediation Progress";
+    Layout = "_Layout";
+
+    var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
+    var users = ViewBag.Users as List<AppUser> ?? new List<AppUser>();
+
+    int? currentProjectFilter = ViewBag.CurrentProjectFilter as int?;
+    int? currentUserFilter = ViewBag.CurrentUserFilter as int?;
+    string currentStatusFilter = ViewBag.CurrentStatusFilter?.ToString() ?? "";
+    bool isProjectManager = ViewBag.IsProjectManager ?? false;
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Monitor issue remediation status and update progress across projects.
+            </p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="app-alert success">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="app-alert danger">@TempData["Error"]</div>
+    }
+
+    <div class="dashboard-stat-grid four-col">
+        <div class="dashboard-stat-card orange">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">Pending</div>
+                <div class="dashboard-stat-value">@ViewBag.PendingCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card blue">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">In Progress</div>
+                <div class="dashboard-stat-value">@ViewBag.InProgressCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card purple">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">On Hold</div>
+                <div class="dashboard-stat-value">@ViewBag.OnHoldCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-pause-circle"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card green">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">Fixed</div>
+                <div class="dashboard-stat-value">@ViewBag.FixedCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-filter-card mb-4">
+        <form method="get" asp-action="Index" asp-controller="Remediation">
+            <div class="report-filter-grid remediation-filter-grid">
+                <div class="form-block">
+                    <label class="form-label">Project</label>
+                    <select name="projectFilter" class="form-input">
+                        <option value="">-- All Projects --</option>
+                        @foreach (var p in projects)
+                        {
+                            if (currentProjectFilter.HasValue && currentProjectFilter.Value == p.Id)
+                            {
+                                <option value="@p.Id" selected>@p.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-block">
+                    <label class="form-label">Developer</label>
+                    <select name="userFilter" class="form-input">
+                        <option value="">-- All Developers --</option>
+                        @foreach (var u in users)
+                        {
+                            if (currentUserFilter.HasValue && currentUserFilter.Value == u.Id)
+                            {
+                                <option value="@u.Id" selected>@u.FullName</option>
+                            }
+                            else
+                            {
+                                <option value="@u.Id">@u.FullName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-block">
+                    <label class="form-label">Status</label>
+                    <select name="statusFilter" class="form-input">
+                        <option value="">-- All Statuses --</option>
+                        <option value="Pending" selected="@(currentStatusFilter == "Pending")">Pending</option>
+                        <option value="InProgress" selected="@(currentStatusFilter == "InProgress")">In Progress</option>
+                        <option value="OnHold" selected="@(currentStatusFilter == "OnHold")">On Hold</option>
+                        <option value="Fixed" selected="@(currentStatusFilter == "Fixed")">Fixed</option>
+                    </select>
+                </div>
+
+                <div class="form-block action-block">
+                    <label class="form-label invisible-label">Action</label>
+                    <button type="submit" class="primary-btn">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="app-card inner-card">
+        <div class="section-header mb-3">
+            <div>
+                <h3 class="section-title small-title">Issue Remediation List</h3>
+                <p class="section-subtitle">Track and update the remediation status of detected issues.</p>
+            </div>
+        </div>
+
+        @if (Model == null || !Model.Any())
+        {
+            <div class="empty-state-box">
+                <h4>No remediation issues found</h4>
+                <p>No remediation items match the selected filter.</p>
+            </div>
+        }
+        else
+        {
+            <div class="history-table-wrap">
+                <table class="history-table remediation-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Project</th>
+                            <th>Developer</th>
+                            <th>Impact</th>
+                            <th>Rule</th>
+                            <th>Target</th>
+                            <th>Fix Tip</th>
+                            <th>Status</th>
+                            <th style="width:240px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td><span class="history-id">#@item.Id</span></td>
+                                <td>@(item.ScanRecord?.Project?.Name ?? "-")</td>
+                                <td>@(item.ScanRecord?.AppUser?.FullName ?? "-")</td>
+                                <td>
+                                    <span class="badge
+                                                @(item.Impact == "critical" ? "bg-danger" :
+                                                                                    item.Impact == "serious" ? "bg-warning text-dark" :
+                                                                                    item.Impact == "moderate" ? "bg-info text-dark" :
+                                                                                    "bg-secondary")">
+                                                                                                 @item.Impact
+                                                                                             </span>
+                                                                                         </td>
+                                                                                         <td>@item.Rule</td>
+                                                                                         <td><code>@item.Target</code></td>
+                                                                                         <td class="remediation-fix-tip">@item.FixTip</td>
+                                                                                         <td>
+                                                                                             <span class="admin-role-badge
+                                                @(item.Status == "Pending" ? "rem-status-pending" :
+                                                                                    item.Status == "InProgress" ? "rem-status-progress" :
+                                                                                    item.Status == "OnHold" ? "rem-status-hold" :
+                                                                                    "rem-status-fixed")">
+                                        @(item.Status == "InProgress" ? "In Progress" :
+                                                                        item.Status == "OnHold" ? "On Hold" :
+                                                                        item.Status)
+                            </span>
+                        </td>
+                        <td>
+                            <form asp-action="UpdateStatus" method="post" class="admin-role-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="Id" value="@item.Id" />
+
+                                        <select name="Status" class="form-input admin-role-select">
+                                            <option value="Pending" selected="@(item.Status == "Pending")">Pending</option>
+                                            <option value="InProgress" selected="@(item.Status == "InProgress")">In Progress</option>
+                                            <option value="OnHold" selected="@(item.Status == "OnHold")">On Hold</option>
+                                            <option value="Fixed" selected="@(item.Status == "Fixed")">Fixed</option>
+                                        </select>
+
+                                        <button type="submit" class="save-role-btn">Save</button>
+                                    </form>
+                                </td>
+                            </tr>
+                                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
