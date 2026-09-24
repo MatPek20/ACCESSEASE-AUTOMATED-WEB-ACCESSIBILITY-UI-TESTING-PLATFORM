@@ -1,0 +1,120 @@
+/* Global */
+body {
+    background: #f4f6f9;
+    font-family: system-ui, sans-serif;
+    /* zoom: 1.1;  uncomment ONLY for demo / presentation */
+}
+
+/* Sidebar */
+.sidebar {
+    background: linear-gradient(180deg, #1e88e5, #1565c0);
+    min-height: 100vh;
+    color: white;
+}
+
+    .sidebar .logo {
+        padding: 20px;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .sidebar .nav-link {
+        color: white;
+        font-size: 1.1rem;
+        padding: 14px 20px;
+    }
+
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+/* Top bar */
+.topbar {
+    padding: 20px 32px;
+}
+
+    .topbar h5 {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+/* Page title (if used elsewhere) */
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #222;
+}
+
+/* Stat cards */
+.stat-card {
+    padding: 28px;
+    border-radius: 14px;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+    .stat-card .icon {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.35);
+        color: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-card .label {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 1.0);
+    }
+
+    .stat-card .value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    /* Card colors */
+    .stat-card.purple {
+        background: #7b74c9;
+    }
+
+    .stat-card.green {
+        background: #7cc48a;
+    }
+
+    .stat-card.red {
+        background: #c98a86;
+    }
+
+    .stat-card.olive {
+        background: #c5c27b;
+    }
+
+/* Buttons (global) */
+.btn {
+    font-size: 1.1rem;
+    padding: 12px 24px;
+    border-radius: 10px;
+}
+
+.btn-primary {
+    padding: 14px 32px;
+    font-weight: 600;
+}
+
+/* Optional specific buttons */
+.run-scan-btn,
+.view-report-btn {
+    font-size: 1.1rem;
+    padding: 14px 32px;
+    border-radius: 10px;
+}
