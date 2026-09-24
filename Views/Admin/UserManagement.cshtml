@@ -1,0 +1,104 @@
+﻿@model List<AccessEase12.ViewModels.AdminUserManagementViewModel>
+
+@{
+    ViewData["Title"] = "Admin User Management";
+    Layout = "_Layout";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Review user accounts, update roles, and remove accounts when needed.
+            </p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="app-alert success">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="app-alert danger">@TempData["Error"]</div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="empty-state-box">
+            <h4>No users found</h4>
+            <p>User accounts will appear here once they are registered in the system.</p>
+        </div>
+    }
+    else
+    {
+        <div class="history-table-wrap">
+            <table class="history-table admin-users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created At</th>
+                        <th style="width: 280px;">Role Action</th>
+                        <th style="width: 130px;">Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="history-id">#@user.Id</span>
+                            </td>
+                            <td>
+                                <div class="admin-user-name">@user.FullName</div>
+                            </td>
+                            <td>
+                                <div class="admin-user-email">@user.Email</div>
+                            </td>
+                            <td>
+                                <span class="admin-role-badge
+                                            @(user.Role == "Admin" ? "role-admin" :
+                                                                            user.Role == "ProjectManager" ? "role-pm" :
+                                                                            "role-dev")">
+                            @user.Role
+                        </span>
+                    </td>
+                    <td>
+                        <div class="history-time">@user.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    </td>
+                    <td>
+                        <form asp-action="UpdateUserRole" method="post" class="admin-role-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@user.Id" />
+
+                                    <select name="role" class="form-input admin-role-select">
+                                        <option value="Developer" selected="@(user.Role == "Developer")">Developer</option>
+                                        <option value="ProjectManager" selected="@(user.Role == "ProjectManager")">Project Manager</option>
+                                        <option value="Admin" selected="@(user.Role == "Admin")">Admin</option>
+                                    </select>
+
+                                    <button type="submit" class="save-role-btn">
+                                        Save
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Delete this user account?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <button type="submit" class="danger-btn small-btn w-100">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

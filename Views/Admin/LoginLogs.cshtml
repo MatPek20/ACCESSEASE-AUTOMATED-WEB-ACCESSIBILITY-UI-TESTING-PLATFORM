@@ -1,0 +1,60 @@
+﻿@model List<AccessEase.Models.LoginLog>
+
+@{
+    ViewData["Title"] = "Login Activity Logs";
+    Layout = "_Layout";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Review successful and failed login attempts across user accounts.
+            </p>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="empty-state-box">
+            <h4>No login logs found</h4>
+            <p>Login activity records will appear here after users attempt to sign in.</p>
+        </div>
+    }
+    else
+    {
+        <div class="history-table-wrap">
+            <table class="history-table login-log-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Login Time</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td><span class="history-id">#@log.Id</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(log.FullName) ? "-" : log.FullName)</td>
+                            <td>@log.Email</td>
+                            <td>@(string.IsNullOrWhiteSpace(log.Role) ? "-" : log.Role)</td>
+                            <td>
+                                <span class="admin-role-badge @(log.Status == "Success" ? "login-success" : "login-failed")">
+                                    @log.Status
+                                </span>
+                            </td>
+                            <td>@log.LoginTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            <td>@(string.IsNullOrWhiteSpace(log.IpAddress) ? "-" : log.IpAddress)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
