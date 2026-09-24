@@ -1,0 +1,175 @@
+﻿@model List<AccessEase.Models.ScanRecord>
+@using AccessEase.Models
+
+@{
+    ViewData["Title"] = "Approve Baseline";
+    Layout = "_Layout";
+
+    var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
+    var currentBaselines = ViewBag.CurrentBaselines as List<BaselineApproval> ?? new List<BaselineApproval>();
+    int? currentProjectFilter = ViewBag.CurrentProjectFilter as int?;
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Approve reference scan records and manage current project baselines.
+            </p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="app-alert success">@TempData["Success"]</div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="app-alert danger">@TempData["Error"]</div>
+    }
+
+    <div class="report-filter-card mb-4">
+        <form method="get" asp-action="Index" asp-controller="Baseline">
+            <div class="report-filter-grid baseline-filter-grid">
+                <div class="form-block wide">
+                    <label class="form-label">Project</label>
+                    <select name="projectFilter" class="form-input">
+                        <option value="">-- All Projects --</option>
+                        @foreach (var p in projects)
+                        {
+                            if (currentProjectFilter.HasValue && currentProjectFilter.Value == p.Id)
+                            {
+                                <option value="@p.Id" selected>@p.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-block action-block">
+                    <label class="form-label invisible-label">Action</label>
+                    <button type="submit" class="primary-btn">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="app-card inner-card mb-4">
+        <div class="section-header mb-3">
+            <div>
+                <h3 class="section-title small-title">Current Approved Baselines</h3>
+                <p class="section-subtitle">Approved baseline records currently active in the system.</p>
+            </div>
+        </div>
+
+        @if (currentBaselines == null || !currentBaselines.Any())
+        {
+            <div class="empty-state-box">
+                <h4>No baselines approved yet</h4>
+                <p>Approved baseline records will appear here once they are set.</p>
+            </div>
+        }
+        else
+        {
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>URL</th>
+                            <th>Baseline Scan ID</th>
+                            <th>Approved By</th>
+                            <th>Approved At</th>
+                            <th>Notes</th>
+                            <th style="width:120px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in currentBaselines)
+                        {
+                            <tr>
+                                <td>@(b.Project?.Name ?? "-")</td>
+                                <td class="report-url-cell">@b.Url</td>
+                                <td><span class="history-id">#@b.ScanRecordId</span></td>
+                                <td>@(b.ApprovedByUser?.FullName ?? "-")</td>
+                                <td>@b.ApprovedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(string.IsNullOrWhiteSpace(b.Notes) ? "-" : b.Notes)</td>
+                                <td>
+                                    <form asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <button type="submit" class="danger-btn small-btn w-100">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="app-card inner-card">
+        <div class="section-header mb-3">
+            <div>
+                <h3 class="section-title small-title">Recent Scan Records Available for Baseline Approval</h3>
+                <p class="section-subtitle">Choose a recent scan and approve it as the reference baseline.</p>
+            </div>
+        </div>
+
+        @if (Model == null || !Model.Any())
+        {
+            <div class="empty-state-box">
+                <h4>No scan records available</h4>
+                <p>There are no recent scans available for baseline approval.</p>
+            </div>
+        }
+        else
+        {
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Project</th>
+                            <th>URL</th>
+                            <th>Scanned By</th>
+                            <th>Scan Time</th>
+                            <th>Issue Count</th>
+                            <th style="width:320px;">Approve as Baseline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td><span class="history-id">#@item.Id</span></td>
+                                <td>@(item.Project?.Name ?? "-")</td>
+                                <td class="report-url-cell">@item.Url</td>
+                                <td>@(item.AppUser?.FullName ?? "-")</td>
+                                <td>@item.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="history-issue-badge @(item.IssueCount > 0 ? "has-issues" : "clean-issues")">
+                                        @item.IssueCount
+                                    </span>
+                                </td>
+                                <td>
+                                    <form asp-action="Approve" method="post" class="baseline-approve-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ScanRecordId" value="@item.Id" />
+                                        <input type="text" name="Notes" class="form-input baseline-note-input" placeholder="Optional note" />
+                                        <button type="submit" class="save-role-btn">Approve</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
