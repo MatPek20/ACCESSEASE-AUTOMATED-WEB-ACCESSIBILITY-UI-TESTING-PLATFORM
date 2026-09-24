@@ -1,0 +1,172 @@
+﻿@{
+    ViewData["Title"] = "Welcome";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AccessEase</title>
+    <link rel="stylesheet" href="~/css/welcome.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="welcome-page">
+        <header class="topbar fade-in-top">
+            <div class="brand brand-logo-wrap">
+                <img src="~/images/logoAE.png" alt="AccessEase Logo" class="brand-logo" />
+            </div>
+
+            <button class="theme-btn" id="themeToggle" type="button" title="Change Theme">
+                <span id="themeIcon">☾</span>
+            </button>
+        </header>
+
+        <main class="hero-section">
+            <div class="hero-left">
+                <div class="hero-badge fade-in delay-1">Smart Testing. Better Experiences.</div>
+
+                <h1 class="hero-title fade-in-up delay-2">
+                    AccessEase changes<br />
+                    the way you test<br />
+                    <span>websites</span>
+                </h1>
+
+                <p class="hero-subtext fade-in-up delay-3">
+                    A smart platform for accessibility and UI validation testing
+                    that helps teams detect issues, track progress, and improve
+                    web quality with ease.
+                </p>
+
+                <div class="hero-actions fade-in-up delay-4">
+                    <a href="@Url.Action("Login", "Account")" class="scan-btn" id="scanLink">
+                        Let's Scan →
+                    </a>
+                </div>
+
+                <div class="hero-tags fade-in-up delay-5">
+                    <span>WCAG Aligned</span>
+                    <span>UI Validation Ready</span>
+                    <span>Built for Teams</span>
+                </div>
+            </div>
+
+            <div class="hero-right fade-in-right delay-3">
+                <div class="dashboard-mockup float-in">
+                    <div class="mock-sidebar">
+                        <div class="mock-logo">AccessEase</div>
+                        <div class="mock-item active">Overview</div>
+                        <div class="mock-item">Scans</div>
+                        <div class="mock-item">Issues</div>
+                        <div class="mock-item">Reports</div>
+                        <div class="mock-item">Settings</div>
+                    </div>
+
+                    <div class="mock-content">
+                        <div class="mock-header">
+                            <h3>Overview</h3>
+                            <button class="mock-btn">+ New Scan</button>
+                        </div>
+
+                        <div class="mock-cards">
+                            <div class="mock-card">
+                                <small>Accessibility Score</small>
+                                <h2>86</h2>
+                            </div>
+                            <div class="mock-card">
+                                <small>Issues Found</small>
+                                <h2>48</h2>
+                            </div>
+                            <div class="mock-card">
+                                <small>Warnings</small>
+                                <h2>23</h2>
+                            </div>
+                            <div class="mock-card">
+                                <small>Passed Checks</small>
+                                <h2>312</h2>
+                            </div>
+                        </div>
+
+                        <div class="mock-graphs">
+                            <div class="graph-box">
+                                <h4>Issues by Severity</h4>
+                                <div class="fake-donut"></div>
+                            </div>
+                            <div class="graph-box">
+                                <h4>Score Trend</h4>
+                                <div class="fake-line">
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <section class="feature-row fade-in-up delay-5">
+            <div class="feature-card">
+                <h3>Accessibility First</h3>
+                <p>Check websites against accessibility rules and support inclusive design.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Smart Detection</h3>
+                <p>Detect accessibility and UI issues in one testing workflow.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Track Progress</h3>
+                <p>Monitor issues over time and see how quality improves across scans.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Actionable Reports</h3>
+                <p>Review findings clearly and support faster remediation decisions.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function () {
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+            const storageKey = "accessease-theme";
+
+            function applyTheme(theme) {
+                html.setAttribute("data-theme", theme);
+                themeIcon.textContent = theme === "dark" ? "☀" : "☾";
+            }
+
+            const savedTheme = localStorage.getItem(storageKey);
+            if (savedTheme === "dark" || savedTheme === "light") {
+                applyTheme(savedTheme);
+            } else {
+                applyTheme("light");
+            }
+
+            toggleBtn.addEventListener("click", function () {
+                const currentTheme = html.getAttribute("data-theme");
+                const nextTheme = currentTheme === "dark" ? "light" : "dark";
+                applyTheme(nextTheme);
+                localStorage.setItem(storageKey, nextTheme);
+            });
+
+                 const scanLink = document.getElementById("scanLink");
+            const page = document.querySelector(".welcome-page");
+
+            if (scanLink && page) {
+                scanLink.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    const targetUrl = this.href;
+                    page.classList.add("page-fade-out");
+
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 500);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

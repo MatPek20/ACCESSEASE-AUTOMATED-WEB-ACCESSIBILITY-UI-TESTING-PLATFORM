@@ -1,0 +1,331 @@
+﻿@model List<AccessEase.Models.ScanRecord>
+@using AccessEase.Models
+
+@{
+    ViewData["Title"] = "Reports";
+    Layout = "_Layout";
+
+    var uniqueUrls = ViewBag.UniqueUrls as List<string> ?? new List<string>();
+    var users = ViewBag.Users as List<AppUser> ?? new List<AppUser>();
+    var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
+
+    string currentFilter = ViewBag.CurrentFilter?.ToString() ?? "";
+    int? currentUserFilter = ViewBag.CurrentUserFilter as int?;
+    int? currentProjectFilter = ViewBag.CurrentProjectFilter as int?;
+    bool isProjectManager = User.IsInRole("ProjectManager");
+}
+
+<div class="app-card no-print">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Review scan activity, issue trends, and detailed reporting records across projects.
+            </p>
+        </div>
+    </div>
+
+    <!-- TOP COMPACT AREA -->
+    <div class="reports-top-grid mb-4">
+        <!-- FILTER -->
+        <div class="report-filter-card compact-filter-card">
+            <form method="get" asp-action="Reports" asp-controller="Home">
+                <div class="report-filter-grid compact-report-filter-grid">
+                    @if (isProjectManager)
+                    {
+                        <div class="form-block">
+                            <label class="form-label">Developer</label>
+                            <select name="userFilter" class="form-input">
+                                <option value="">-- All Developers --</option>
+                                @foreach (var user in users)
+                                {
+                                    if (currentUserFilter.HasValue && currentUserFilter.Value == user.Id)
+                                    {
+                                        <option value="@user.Id" selected>@user.FullName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@user.Id">@user.FullName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <div class="form-block">
+                        <label class="form-label">Project</label>
+                        <select name="projectFilter" class="form-input">
+                            <option value="">-- All Projects --</option>
+                            @foreach (var project in projects)
+                            {
+                                if (currentProjectFilter.HasValue && currentProjectFilter.Value == project.Id)
+                                {
+                                    <option value="@project.Id" selected>@project.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@project.Id">@project.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-block @(isProjectManager ? "wide" : "wide")">
+                        <label class="form-label">View Report For</label>
+                        <select name="urlFilter" class="form-input">
+                            <option value="">-- All Websites --</option>
+                            @foreach (var url in uniqueUrls)
+                            {
+                                if (url == currentFilter)
+                                {
+                                    <option value="@url" selected>@url</option>
+                                }
+                                else
+                                {
+                                    <option value="@url">@url</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-block action-block">
+                        <label class="form-label invisible-label">Action</label>
+                        <button type="submit" class="primary-btn w-100">Filter</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- QUICK STATS -->
+        <div class="dashboard-stat-grid two-col">
+            <div class="dashboard-stat-card blue">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Total Scans</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalScans</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-bar-chart-line"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card red">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Avg. Issues Found</div>
+                    <div class="dashboard-stat-value">@String.Format("{0:0.0}", ViewBag.AvgIssues)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="empty-state-box">
+            <h4>No report data available</h4>
+            <p>No records match the selected filter right now.</p>
+        </div>
+    }
+    else
+    {
+        @if (ViewBag.BaselineExists == true)
+        {
+            var comparisonStatus = ViewBag.BaselineComparisonStatus?.ToString() ?? "";
+            var baselineClass = comparisonStatus == "Improved"
+            ? "success"
+            : comparisonStatus == "Regressed"
+            ? "danger"
+            : "warning";
+
+            <div class="app-alert @baselineClass compact-baseline-alert mb-4">
+                <strong>Baseline Comparison Summary</strong>
+
+                <div class="baseline-summary-grid mt-3">
+                    <div><strong>Project:</strong> @ViewBag.BaselineProjectName</div>
+                    <div><strong>URL:</strong> @ViewBag.BaselineUrl</div>
+                    <div><strong>Baseline Scan ID:</strong> #@ViewBag.BaselineScanId</div>
+                    <div><strong>Baseline Issue Count:</strong> @ViewBag.BaselineIssueCount</div>
+                    <div><strong>Latest Report Issue Count:</strong> @ViewBag.CurrentIssueCount</div>
+                    <div><strong>Difference:</strong> @ViewBag.IssueDifference</div>
+                </div>
+
+                <div class="mt-3">@ViewBag.BaselineComparisonMessage</div>
+            </div>
+        }
+        else
+        {
+            <div class="app-alert muted compact-baseline-alert mb-4">
+                <strong>No approved baseline found</strong> for the latest filtered report record.
+            </div>
+        }
+
+        <!-- TREND FIRST -->
+        <div class="app-card inner-card mb-4">
+            <div class="section-header mb-3">
+                <div>
+                    <h3 class="section-title small-title">Issue Trend</h3>
+                    <p class="section-subtitle">Track issue volume across saved scans.</p>
+                </div>
+            </div>
+
+            <div class="dashboard-chart-wrap report-chart-wrap">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- SCAN HISTORY -->
+        <div class="app-card inner-card mb-4">
+            <div class="section-header mb-3">
+                <div>
+                    <h3 class="section-title small-title">Scan History</h3>
+                    <p class="section-subtitle">Quick access to recent scan reports.</p>
+                </div>
+            </div>
+
+            <div class="report-history-scroll">
+                <table class="history-table compact-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Total Issues</th>
+                            <th>Project</th>
+                            @if (isProjectManager)
+                            {
+                                <th>Scanned By</th>
+                            }
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.AsEnumerable().Reverse())
+                        {
+                            <tr>
+                                <td class="small">@s.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="history-issue-badge @(s.IssueCount > 0 ? "has-issues" : "clean-issues")">
+                                        @s.IssueCount
+                                    </span>
+                                </td>
+                                <td class="small">@(s.Project?.Name ?? "-")</td>
+
+                                @if (isProjectManager)
+                                {
+                                    <td class="small">@(s.AppUser?.FullName ?? "Unknown")</td>
+                                }
+
+                                <td class="text-end">
+                                    <a asp-controller="Home"
+                                       asp-action="HistoryDetails"
+                                       asp-route-id="@s.Id"
+                                       class="mini-doc-btn">
+                                        View Report
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- DETAILED RECORDS -->
+        <div class="app-card inner-card">
+            <div class="section-header mb-3">
+                <div>
+                    <h3 class="section-title small-title">Detailed Report Records</h3>
+                    <p class="section-subtitle">Full record listing for filtered scan reports.</p>
+                </div>
+            </div>
+
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Project</th>
+                            <th>URL</th>
+                            <th>Scan Time</th>
+                            <th>Issue Count</th>
+                            @if (isProjectManager)
+                            {
+                                <th>Scanned By</th>
+                            }
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderByDescending(x => x.ScanTime))
+                        {
+                            <tr>
+                                <td><span class="history-id">#@item.Id</span></td>
+                                <td>@(item.Project?.Name ?? "-")</td>
+                                <td class="report-url-cell">@item.Url</td>
+                                <td>@item.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="history-issue-badge @(item.IssueCount > 0 ? "has-issues" : "clean-issues")">
+                                        @item.IssueCount
+                                    </span>
+                                </td>
+
+                                @if (isProjectManager)
+                                {
+                                    <td>@(item.AppUser?.FullName ?? "Unknown")</td>
+                                }
+
+                                <td class="text-center">
+                                    <a asp-controller="Home"
+                                       asp-action="HistoryDetails"
+                                       asp-route-id="@item.Id"
+                                       class="mini-doc-btn"
+                                       target="_blank">
+                                        Open
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const trendValues = @Html.Raw(Json.Serialize(ViewBag.TrendValues ?? new List<int>()));
+        const trendLabels = @Html.Raw(Json.Serialize(ViewBag.TrendLabels ?? new List<string>()));
+
+        if (trendValues.length > 0) {
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Total Issues Found',
+                        data: trendValues,
+                        borderColor: '#1e88e5',
+                        backgroundColor: 'rgba(30, 136, 229, 0.10)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#1e88e5',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,82 @@
+﻿@model List<AccessEase.Models.AxeIssue>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="text-muted">No issues found.</p>
+}
+else
+{
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th style="width:120px">Impact</th>
+                <th>Rule</th>
+                <th style="width:80px">Count</th>
+                <th>Target</th>
+                <th style="width:160px">Evidence</th>
+                <th style="width:80px">Help</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in Model)
+            {
+                string badge =
+                i.Impact == "critical" ? "bg-danger" :
+                i.Impact == "serious" ? "bg-warning text-dark" :
+                i.Impact == "moderate" ? "bg-info text-dark" :
+                "bg-success";
+
+                <tr>
+                    <td>
+                        <span class="badge @badge text-uppercase">@i.Impact</span>
+                    </td>
+
+                    <td><strong>@i.Rule</strong></td>
+
+                    <td>@i.Count</td>
+
+                    <td style="font-size:13px">
+                        @if (!string.IsNullOrWhiteSpace(i.Target))
+                        {
+                            <code>@i.Target</code>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(i.EvidenceUrl))
+                        {
+                            <a href="@i.EvidenceUrl" target="_blank">
+                                <img src="@i.EvidenceUrl" style="max-width:140px;border:1px solid #ccc;border-radius:4px" />
+                            </a>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(i.ScreenshotUrl))
+                        {
+                            <a href="@i.ScreenshotUrl" target="_blank">
+                                <img src="@i.ScreenshotUrl" style="max-width:140px;border:1px solid #ccc;border-radius:4px" />
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(i.HelpUrl))
+                        {
+                            <a href="@i.HelpUrl" target="_blank">WCAG</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

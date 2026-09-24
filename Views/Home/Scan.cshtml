@@ -1,0 +1,531 @@
+﻿@using AccessEase.Models
+@{
+    ViewData["Title"] = "Run Automated Scan";
+    Layout = "_Layout";
+
+    var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
+    var axeIssues = ViewBag.AxeIssues as List<AxeIssue> ?? new List<AxeIssue>();
+    var uiIssues = ViewBag.UiIssues as IEnumerable<dynamic> ?? new List<dynamic>();
+
+    int totalIssues = axeIssues.Count + uiIssues.Count();
+    int criticalCount = axeIssues.Count(x => (x.Impact ?? "").ToLower() == "critical")
+                        + uiIssues.Count(x => ((string?)x.Impact ?? "").ToLower() == "critical");
+    int seriousCount = axeIssues.Count(x => (x.Impact ?? "").ToLower() == "serious")
+                       + uiIssues.Count(x => ((string?)x.Impact ?? "").ToLower() == "serious");
+    int pendingFixes = totalIssues;
+    string scanStatus = ViewBag.Success != null ? "Scan Complete" : "Ready to Scan";
+
+    var groupedUiIssues = uiIssues
+        .GroupBy(i => string.IsNullOrWhiteSpace((string?)i.Category) ? "General" : (string)i.Category)
+        .OrderBy(g => g.Key);
+}
+
+<div class="app-card scan-shell-card">
+    <div class="scan-top-header">
+        <div>
+            <p class="scan-project-subtitle">
+                Start accessibility and UI validation testing for your assigned project.
+            </p>
+        </div>
+
+        @if (ViewBag.Success != null)
+        {
+            <div class="scan-status-chip success">
+                @scanStatus
+            </div>
+        }
+    </div>
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="app-alert danger">
+            @ViewBag.Error
+        </div>
+    }
+
+    @if (ViewBag.Success != null && ViewBag.BaselineExists == true)
+    {
+        var comparisonStatus = ViewBag.BaselineComparisonStatus?.ToString() ?? "";
+        var cls = comparisonStatus == "Improved"
+        ? "success"
+        : comparisonStatus == "Regressed"
+        ? "danger"
+        : "warning";
+
+        <div class="app-alert @cls">
+            <strong>Baseline Comparison Result</strong><br />
+            Baseline Scan ID: #@ViewBag.BaselineScanId<br />
+            Baseline Issue Count: @ViewBag.BaselineIssueCount<br />
+            Current Issue Count: @ViewBag.CurrentIssueCount<br />
+            Difference: @ViewBag.IssueDifference<br />
+            <div class="mt-2">@ViewBag.BaselineComparisonMessage</div>
+        </div>
+    }
+    else if (ViewBag.Success != null && ViewBag.BaselineExists == false)
+    {
+        <div class="app-alert muted">
+            <strong>No approved baseline found</strong> for this project and URL yet.
+        </div>
+    }
+
+    @if (projects == null || !projects.Any())
+    {
+        <div class="app-alert warning">
+            You are not assigned to any project yet. Please contact the Project Manager before running a scan.
+        </div>
+    }
+
+    <form method="post" asp-action="Scan" id="scanForm">
+        <div class="scan-input-grid">
+            <div class="form-block">
+                <label class="form-label">Project</label>
+                <select name="projectId" id="projectSelect" class="form-input" required>
+                    <option value="">-- Select Project --</option>
+                    @foreach (var p in projects)
+                    {
+                        <option value="@p.Id" data-url="@p.DefaultUrl">@p.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-block">
+                <label class="form-label">Target URL</label>
+                <input type="url"
+                       id="urlInput"
+                       name="url"
+                       class="form-input"
+                       placeholder="https://example.com"
+                       required />
+            </div>
+
+            <div class="form-block">
+                <label class="form-label">WCAG Severity</label>
+                <select class="form-input" name="severity">
+                    <option value="all">All</option>
+                    <option value="critical">Critical</option>
+                    <option value="serious">Serious</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="minor">Minor</option>
+                </select>
+            </div>
+
+            <div class="form-block full">
+                <label class="form-label">Scan Mode</label>
+                <div class="scan-mode-group">
+                    <label class="toggle-pill">
+                        <input type="radio" name="mode" value="axe" checked>
+                        <span class="pill"><span class="check">✓</span>Accessibility Scan</span>
+                    </label>
+
+                    <label class="toggle-pill">
+                        <input type="radio" name="mode" value="ui">
+                        <span class="pill"><span class="check">✓</span>UI Validation</span>
+                    </label>
+
+                    <label class="toggle-pill">
+                        <input type="radio" name="mode" value="both">
+                        <span class="pill"><span class="check">✓</span>Both</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="scan-action-row">
+            <button type="submit"
+                    class="primary-btn"
+                    @(projects == null || !projects.Any() ? "disabled" : "")>
+                Run Scan
+            </button>
+
+            <a href="/Home/History" class="secondary-btn">Scan History</a>
+        </div>
+    </form>
+
+    <div id="scanLoadingOverlay" class="scan-loading-overlay d-none">
+        <div class="scan-loading-box">
+            <div class="scan-spinner"></div>
+            <h4>Scan in progress...</h4>
+            <p id="scanLoadingText">Preparing scan...</p>
+        </div>
+    </div>
+</div>
+
+@if (totalIssues > 0)
+{
+    <div class="scan-mini-stats-grid mt-4">
+        <div class="scan-mini-stat">
+            <div class="scan-mini-label">Accessibility / UI Issues</div>
+            <div class="scan-mini-value">@totalIssues</div>
+            <div class="scan-mini-sub">Across current scan results</div>
+        </div>
+
+        <div class="scan-mini-stat alert-stat">
+            <div class="scan-mini-label">Issues Found</div>
+            <div class="scan-mini-value">@totalIssues</div>
+            <div class="scan-mini-sub">@criticalCount Critical &nbsp;&nbsp; @seriousCount Serious</div>
+        </div>
+
+        <div class="scan-mini-stat">
+            <div class="scan-mini-label">Pending Fixes</div>
+            <div class="scan-mini-value">@pendingFixes</div>
+            <div class="scan-mini-sub">Review and remediation needed</div>
+        </div>
+
+        <div class="scan-mini-stat">
+            <div class="scan-mini-label">Last Scan</div>
+            <div class="scan-mini-sub-big">Just now</div>
+            <div class="scan-mini-sub">Results successfully generated</div>
+        </div>
+    </div>
+}
+
+@if ((axeIssues.Any()) || (uiIssues.Any()))
+{
+    <div class="app-card mt-4 scan-results-card">
+        <div class="scan-results-header">
+            <div>
+                <h3 class="section-title small-title no-margin">Findings Review</h3>
+                <p class="section-subtitle no-margin">
+                    Detailed breakdown of detected accessibility and UI validation issues.
+                </p>
+            </div>
+        </div>
+
+        <div class="issue-filter-bar compact-issue-filter">
+            <div class="issue-filter-grid">
+                <div class="form-block">
+                    <label class="form-label">Search</label>
+                    <input type="text" id="issueSearchInput" class="form-input" placeholder="Search by rule, target, fix tip, snippet..." />
+                </div>
+
+                <div class="form-block">
+                    <label class="form-label">Severity</label>
+                    <select id="issueSeverityFilter" class="form-input">
+                        <option value="all">All</option>
+                        <option value="critical">Critical</option>
+                        <option value="serious">Serious</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="minor">Minor</option>
+                        <option value="unknown">Unknown / UI</option>
+                    </select>
+                </div>
+
+                <div class="form-block">
+                    <label class="form-label">Category</label>
+                    <select id="issueCategoryFilter" class="form-input">
+                        <option value="all">All</option>
+                        <option value="General">General</option>
+                        <option value="Layout">Layout</option>
+                        <option value="Forms">Forms</option>
+                        <option value="Content">Content</option>
+                        <option value="Visual Consistency">Visual Consistency</option>
+                        <option value="Interaction">Interaction</option>
+                        <option value="Accessibility">Accessibility</option>
+                    </select>
+                </div>
+
+                <div class="form-block">
+                    <label class="form-label">Issue Type</label>
+                    <select id="issueTypeFilter" class="form-input">
+                        <option value="all">All</option>
+                        <option value="axe">Accessibility</option>
+                        <option value="ui">UI Validation</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="issue-filter-summary" id="issueFilterSummary">
+                Showing all issues
+            </div>
+        </div>
+    </div>
+}
+
+@if (axeIssues.Any())
+{
+    <div class="app-card mt-4">
+        <div class="scan-table-header">
+            <div>
+                <h3 class="section-title small-title no-margin">Accessibility Violations</h3>
+                <p class="section-subtitle no-margin">Detailed breakdown of failures based on accessibility rules.</p>
+            </div>
+        </div>
+
+        <div class="scan-reference-table-wrap">
+            <table class="scan-reference-table">
+                <thead>
+                    <tr>
+                        <th>Issue Description</th>
+                        <th>Impact</th>
+                        <th>Failed Element &amp; Code Snippet</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var issue in axeIssues)
+                    {
+                        var searchable = $"{issue.Rule} {issue.Help} {issue.Target} {issue.HtmlSnippet} {issue.FixTip}";
+                        <tr class="searchable-issue-card"
+                            data-issue-type="axe"
+                            data-severity="@(string.IsNullOrWhiteSpace(issue.Impact) ? "unknown" : issue.Impact.ToLower())"
+                            data-category="Accessibility"
+                            data-search="@searchable.ToLowerInvariant()">
+
+                            <td class="reference-desc-cell">
+                                <div class="reference-issue-title">@issue.Rule</div>
+                                @if (!string.IsNullOrEmpty(issue.Help))
+                                {
+                                    <div class="reference-issue-text">@issue.Help</div>
+                                }
+                        </td>
+
+                        <td class="reference-impact-cell">
+                            <span class="badge
+                                        @(issue.Impact == "critical" ? "bg-danger" :
+                                                                        issue.Impact == "serious" ? "bg-warning text-dark" :
+                                                                        issue.Impact == "moderate" ? "bg-info text-dark" :
+                                                                        "bg-secondary")">
+                            @issue.Impact
+                        </span>
+                    </td>
+
+                            <td class="reference-code-cell">
+                                <div class="reference-selector-line">
+                                    <strong>Selector:</strong> @(string.IsNullOrWhiteSpace(issue.Target) ? "-" : issue.Target)
+                                </div>
+
+                        @if (!string.IsNullOrEmpty(issue.HtmlSnippet))
+                                {
+                                    <pre class="reference-code-box">@issue.HtmlSnippet</pre>
+                                }
+
+                                @if (!string.IsNullOrEmpty(issue.FixTip))
+                                {
+                                    <div class="reference-fix-note">
+                                        <strong>Fix:</strong> @issue.FixTip
+                                    </div>
+                                }
+                            </td>
+
+                            <td class="reference-action-cell">
+                                @if (!string.IsNullOrEmpty(issue.HelpUrl))
+                                {
+                                    <a href="@issue.HelpUrl" target="_blank" class="reference-action-btn">Docs</a>
+                                }
+
+                                @if (!string.IsNullOrEmpty(issue.EvidenceUrl))
+                                {
+                                    <a href="@issue.EvidenceUrl" target="_blank" class="reference-action-btn secondary">Evidence</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (uiIssues.Any())
+{
+    <div class="app-card mt-4">
+        <div class="scan-table-header">
+            <div>
+                <h3 class="section-title small-title no-margin">UI Validation Findings</h3>
+                <p class="section-subtitle no-margin">Grouped interface issues based on validation category.</p>
+            </div>
+        </div>
+
+        @foreach (var group in groupedUiIssues)
+        {
+            <div class="category-section">
+                <div class="category-header">
+                    <h4 class="category-title">@group.Key</h4>
+                    <span class="category-count">@group.Count() issue(s)</span>
+                </div>
+
+                <div class="scan-reference-table-wrap">
+                    <table class="scan-reference-table">
+                        <thead>
+                            <tr>
+                                <th>Issue Description</th>
+                                <th>Impact</th>
+                                <th>Failed Element &amp; Code Snippet</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var issue in group)
+                            {
+                                var searchable = $"{issue.Rule} {issue.Target} {issue.HtmlSnippet} {issue.FixTip} {issue.Category}";
+                                <tr class="searchable-issue-card"
+                                    data-issue-type="ui"
+                                    data-severity="@(string.IsNullOrWhiteSpace(issue.Impact) ? "unknown" : issue.Impact.ToLower())"
+                                    data-category="@(string.IsNullOrWhiteSpace(issue.Category) ? "General" : issue.Category)"
+                                    data-search="@searchable.ToLowerInvariant()">
+
+                                    <td class="reference-desc-cell">
+                                        <div class="reference-issue-title">@issue.Rule</div>
+                                        <div class="mt-2">
+                                            <span class="category-chip">@issue.Category</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="reference-impact-cell">
+                                        <span class="badge bg-secondary">UI</span>
+                                    </td>
+
+                                    <td class="reference-code-cell">
+                                        <div class="reference-selector-line">
+                                            <strong>Selector:</strong> @(string.IsNullOrWhiteSpace(issue.Target) ? "-" : issue.Target)
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(issue.HtmlSnippet))
+                                        {
+                                            <pre class="reference-code-box">@issue.HtmlSnippet</pre>
+                                        }
+
+                                        @if (!string.IsNullOrEmpty(issue.FixTip))
+                                        {
+                                            <div class="reference-fix-note">
+                                                <strong>Fix:</strong> @issue.FixTip
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <td class="reference-action-cell">
+                                        @if (!string.IsNullOrEmpty(issue.EvidenceUrl))
+                                        {
+                                            <a href="@issue.EvidenceUrl" target="_blank" class="reference-action-btn">Evidence</a>
+                                        }
+                                        else if (!string.IsNullOrEmpty(issue.ScreenshotUrl))
+                                        {
+                                            <a href="@issue.ScreenshotUrl" target="_blank" class="reference-action-btn">Screenshot</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const projectSelect = document.getElementById("projectSelect");
+        const urlInput = document.getElementById("urlInput");
+        const scanForm = document.getElementById("scanForm");
+        const loadingOverlay = document.getElementById("scanLoadingOverlay");
+        const loadingText = document.getElementById("scanLoadingText");
+        const submitBtn = scanForm ? scanForm.querySelector('button[type="submit"]') : null;
+
+        if (projectSelect && urlInput) {
+            projectSelect.addEventListener("change", function () {
+                const selectedOption = this.options[this.selectedIndex];
+                const defaultUrl = selectedOption.getAttribute("data-url");
+
+                if (defaultUrl) {
+                    urlInput.value = defaultUrl;
+                } else {
+                    urlInput.value = "";
+                }
+            });
+        }
+
+        if (scanForm) {
+            scanForm.addEventListener("submit", function () {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = "Scanning...";
+                }
+
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove("d-none");
+                    loadingOverlay.style.display = "flex";
+                }
+
+                const steps = [
+                    "Initializing browser...",
+                    "Opening target URL...",
+                    "Running accessibility checks...",
+                    "Capturing issue evidence...",
+                    "Saving scan results..."
+                ];
+
+                let stepIndex = 0;
+                if (loadingText) {
+                    loadingText.textContent = steps[0];
+                }
+
+                setInterval(() => {
+                    stepIndex++;
+                    if (stepIndex < steps.length && loadingText) {
+                        loadingText.textContent = steps[stepIndex];
+                    }
+                }, 1800);
+            });
+        }
+
+        const searchInput = document.getElementById("issueSearchInput");
+        const severityFilter = document.getElementById("issueSeverityFilter");
+        const categoryFilter = document.getElementById("issueCategoryFilter");
+        const typeFilter = document.getElementById("issueTypeFilter");
+        const summary = document.getElementById("issueFilterSummary");
+
+        function normalize(value) {
+            return (value || "").toString().trim().toLowerCase();
+        }
+
+        function applyIssueFilters() {
+            const cards = document.querySelectorAll(".searchable-issue-card");
+
+            const searchValue = normalize(searchInput?.value);
+            const severityValue = normalize(severityFilter?.value || "all");
+            const categoryValue = normalize(categoryFilter?.value || "all");
+            const typeValue = normalize(typeFilter?.value || "all");
+
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const severity = normalize(card.dataset.severity);
+                const category = normalize(card.dataset.category);
+                const issueType = normalize(card.dataset.issueType);
+                const searchText = normalize(card.dataset.search);
+
+                const matchesSearch = !searchValue || searchText.includes(searchValue);
+                const matchesSeverity = severityValue === "all" || severity === severityValue;
+                const matchesCategory = categoryValue === "all" || category === categoryValue;
+                const matchesType = typeValue === "all" || issueType === typeValue;
+
+                const show = matchesSearch && matchesSeverity && matchesCategory && matchesType;
+
+                card.style.display = show ? "" : "none";
+
+                if (show) {
+                    visibleCount++;
+                }
+            });
+
+            document.querySelectorAll(".category-section").forEach(section => {
+                const visibleRows = section.querySelectorAll(".searchable-issue-card:not([style*='display: none'])");
+                section.style.display = visibleRows.length > 0 ? "" : "none";
+            });
+
+            if (summary) {
+                summary.textContent = `Showing ${visibleCount} issue(s)`;
+            }
+        }
+
+        [searchInput, severityFilter, categoryFilter, typeFilter].forEach(el => {
+            if (el) {
+                el.addEventListener("input", applyIssueFilters);
+                el.addEventListener("change", applyIssueFilters);
+            }
+        });
+
+        applyIssueFilters();
+    </script>
+}

@@ -1,0 +1,390 @@
+﻿@using AccessEase.Models
+@model AccessEase.Models.ScanRecord
+
+@{
+    Layout = null;
+    var issues = ViewBag.Issues as List<AxeIssue> ?? new List<AxeIssue>();
+
+    var accessibilityIssues = issues
+        .Where(i => string.IsNullOrWhiteSpace(i.Category) || i.Category == "Accessibility")
+        .ToList();
+
+    var uiIssues = issues
+        .Where(i => !string.IsNullOrWhiteSpace(i.Category) && i.Category != "Accessibility")
+        .ToList();
+
+    var criticalCount = issues.Count(i => (i.Impact ?? "").ToLower() == "critical");
+    var seriousCount = issues.Count(i => (i.Impact ?? "").ToLower() == "serious");
+    var moderateCount = issues.Count(i => (i.Impact ?? "").ToLower() == "moderate");
+    var minorCount = issues.Count(i => (i.Impact ?? "").ToLower() == "minor");
+
+    string overallStatus = issues.Count == 0 ? "Clean"
+        : criticalCount > 0 ? "Critical Findings Detected"
+        : seriousCount > 0 ? "Major Findings Detected"
+        : "Issues Detected";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>AccessEase_Report_@ViewBag.Id</title>
+    <link rel="stylesheet" href="~/css/report.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <div class="report-toolbar no-print">
+        <button onclick="printReport()" class="toolbar-btn primary">Print A4 PDF</button>
+        <button type="button" class="toolbar-btn secondary" onclick="goBackSafe()">Back</button>
+    </div>
+
+    <div class="report-page">
+        <div class="report-header">
+            <div class="report-brand">
+                <h1>AccessEase</h1>
+                <p>AUTOMATED TESTING REPORT</p>
+                <span class="status-pill">@overallStatus</span>
+            </div>
+
+            <div class="report-meta">
+                <div>
+                    <span>REPORT ID</span>
+                    <strong>#@ViewBag.Id</strong>
+                </div>
+                <div>
+                    <span>GENERATED ON</span>
+                    <strong>@ViewBag.Time</strong>
+                </div>
+            </div>
+        </div>
+
+        <section class="report-section">
+            <h2>Testing Overview</h2>
+            <div class="overview-grid">
+                <div class="overview-card">
+                    <label>Target URL</label>
+                    <p>@ViewBag.Url</p>
+                </div>
+                <div class="overview-card">
+                    <label>Test Type</label>
+                    <p>Accessibility Scan + UI Validation</p>
+                </div>
+                <div class="overview-card">
+                    <label>Scan ID</label>
+                    <p>#@ViewBag.Id</p>
+                </div>
+                <div class="overview-card">
+                    <label>Total Findings</label>
+                    <p>@ViewBag.IssueCount</p>
+                </div>
+                <div class="overview-card">
+                    <label>Scanned By</label>
+                    <p>@ViewBag.ScannedBy</p>
+                </div>
+                <div class="overview-card">
+                    <label>Overall Status</label>
+                    <p>@overallStatus</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="report-section">
+            <h2>Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-box critical">
+                    <span>Critical</span>
+                    <strong>@criticalCount</strong>
+                </div>
+                <div class="summary-box serious">
+                    <span>Serious</span>
+                    <strong>@seriousCount</strong>
+                </div>
+                <div class="summary-box moderate">
+                    <span>Moderate</span>
+                    <strong>@moderateCount</strong>
+                </div>
+                <div class="summary-box minor">
+                    <span>Minor</span>
+                    <strong>@minorCount</strong>
+                </div>
+            </div>
+        </section>
+
+        @if (ViewBag.BaselineExists == true)
+        {
+            var comparisonStatus = ViewBag.BaselineComparisonStatus?.ToString() ?? "";
+            var baselineClass = comparisonStatus == "Improved"
+            ? "success"
+            : comparisonStatus == "Regressed"
+            ? "danger"
+            : "warning";
+
+            <section class="report-section">
+                <h2>Baseline Comparison Summary</h2>
+                <div class="baseline-box @baselineClass">
+                    <div><strong>Baseline Scan ID:</strong> #@ViewBag.BaselineScanId</div>
+                    <div><strong>Baseline Issue Count:</strong> @ViewBag.BaselineIssueCount</div>
+                    <div><strong>Current Issue Count:</strong> @ViewBag.CurrentIssueCount</div>
+                    <div><strong>Difference:</strong> @ViewBag.IssueDifference</div>
+                    <div class="baseline-message">@ViewBag.BaselineComparisonMessage</div>
+                </div>
+            </section>
+        }
+
+        <section class="report-section">
+            <h2>Issue Trend</h2>
+            <div class="chart-card">
+                <canvas id="trendChart"></canvas>
+                <img id="trendChartImage"
+                     alt="Issue Trend Chart"
+                     class="print-chart-image" />
+            </div>
+        </section>
+
+        <section class="report-section">
+            <div class="section-head">
+                <h2>Detailed Findings</h2>
+                <span class="issue-count">@issues.Count issue(s)</span>
+            </div>
+
+            @if (!accessibilityIssues.Any() && !uiIssues.Any())
+            {
+                <div class="empty-report-state">
+                    No issues were recorded for this scan.
+                </div>
+            }
+            else
+            {
+                @if (accessibilityIssues.Any())
+                {
+                    <div class="findings-group">
+                        <div class="group-head">
+                            <h3>Accessibility Findings</h3>
+                            <span>@accessibilityIssues.Count issue(s)</span>
+                        </div>
+
+                        <div class="report-table-wrap">
+                            <table class="report-issues-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rule</th>
+                                        <th>Impact</th>
+                                        <th>Category</th>
+                                        <th>Details</th>
+                                        <th>Suggested Fix</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var i in accessibilityIssues)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@i.Rule</strong>
+                                                @if (!string.IsNullOrWhiteSpace(i.Help))
+                                                {
+                                                    <div class="table-help">@i.Help</div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="severity-badge @(string.IsNullOrWhiteSpace(i.Impact) ? "unknown" : i.Impact.ToLower())">
+                                                    @i.Impact
+                                                </span>
+                                            </td>
+                                            <td>Accessibility</td>
+                                            <td>
+                                                <div><strong>Selector:</strong> <span class="mono-cell">@(string.IsNullOrWhiteSpace(i.Target) ? "-" : i.Target)</span></div>
+                                                <div class="mt-1"><strong>HTML Line:</strong> @(i.ApproxHtmlLine?.ToString() ?? "N/A")</div>
+
+                                                @if (!string.IsNullOrWhiteSpace(i.HtmlSnippet))
+                                                {
+                                                    <div class="table-code mt-2">@i.HtmlSnippet</div>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(i.FixTip))
+                                                {
+                                                    @i.FixTip
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @if (uiIssues.Any())
+                {
+                    var groupedUiIssues = uiIssues
+                    .GroupBy(i => string.IsNullOrWhiteSpace(i.Category) ? "General" : i.Category)
+                    .OrderBy(g => g.Key);
+
+                    <div class="findings-group">
+                        <div class="group-head">
+                            <h3>UI Validation Findings</h3>
+                            <span>@uiIssues.Count issue(s)</span>
+                        </div>
+
+                        <div class="report-table-wrap">
+                            <table class="report-issues-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rule</th>
+                                        <th>Impact</th>
+                                        <th>Category</th>
+                                        <th>Details</th>
+                                        <th>Suggested Fix</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var group in groupedUiIssues)
+                                    {
+                                        @foreach (var i in group)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@i.Rule</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="severity-badge ui">UI</span>
+                                                </td>
+                                                <td>@group.Key</td>
+                                                <td>
+                                                    <div><strong>Selector:</strong> <span class="mono-cell">@(string.IsNullOrWhiteSpace(i.Target) ? "-" : i.Target)</span></div>
+                                                    <div class="mt-1"><strong>HTML Line:</strong> @(i.ApproxHtmlLine?.ToString() ?? "N/A")</div>
+
+                                                    @if (!string.IsNullOrWhiteSpace(i.HtmlSnippet))
+                                                    {
+                                                        <div class="table-code mt-2">@i.HtmlSnippet</div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(i.FixTip))
+                                                    {
+                                                        @i.FixTip
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            }
+        </section>
+
+        <section class="report-section">
+            <h2>Conclusion</h2>
+            <div class="conclusion-box">
+                This report summarizes the automated accessibility and UI validation results for the tested website.
+                A total of <strong>@issues.Count</strong> finding(s) were recorded.
+                The current result status is <strong>@overallStatus</strong>.
+                Priority should be given to higher-severity findings first, followed by repeated structural and UI consistency issues.
+            </div>
+        </section>
+
+        <div class="report-footer">
+            <div>
+                <div class="signature-line"></div>
+                <div class="footer-muted">Authorized Digital Signature</div>
+                <div class="footer-strong">AccessEase Engine v2.0</div>
+            </div>
+
+            <div class="footer-right">
+                <div class="footer-muted">Verification: <strong>Valid</strong></div>
+                <div class="footer-muted">Page 1 of 1</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const trendLabels = @Html.Raw(Json.Serialize(ViewBag.TrendLabels));
+        const trendValues = @Html.Raw(Json.Serialize(ViewBag.TrendValues));
+
+        const trendCanvas = document.getElementById('trendChart');
+        const trendImage = document.getElementById('trendChartImage');
+
+        let trendChart = null;
+
+        function buildTrendChart() {
+            if (!trendCanvas) return;
+            if (!trendValues || trendValues.length === 0) return;
+
+            trendChart = new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Violations',
+                        data: trendValues,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { font: { size: 9 } }
+                        },
+                        x: {
+                            ticks: { font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+
+            setTimeout(() => {
+                if (trendCanvas && trendImage) {
+                    trendImage.src = trendCanvas.toDataURL('image/png');
+                }
+            }, 1200);
+        }
+
+        function showImageForPrint() {
+            if (trendImage && trendImage.src && trendImage.src.startsWith("data:image")) {
+                trendCanvas.style.display = "none";
+                trendImage.style.display = "block";
+            }
+        }
+
+        function printReport() {
+            showImageForPrint();
+            setTimeout(() => window.print(), 250);
+        }
+
+        function goBackSafe() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/Home/Reports';
+            }
+        }
+
+        window.addEventListener('beforeprint', showImageForPrint);
+        window.addEventListener('load', buildTrendChart);
+    </script>
+</body>
+</html>

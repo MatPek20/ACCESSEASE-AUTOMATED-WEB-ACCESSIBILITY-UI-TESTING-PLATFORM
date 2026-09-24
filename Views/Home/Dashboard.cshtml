@@ -1,0 +1,204 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+    var dashboardType = ViewBag.DashboardType?.ToString() ?? "";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+                Monitor key metrics, activity trends, and overall platform progress.
+            </p>
+        </div>
+    </div>
+
+    @if (dashboardType == "Admin")
+    {
+        <div class="dashboard-stat-grid five-col">
+            <div class="dashboard-stat-card blue">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Total Users</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalUsers</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card purple">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Admins</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalAdmins</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card orange">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Project Managers</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalProjectManagers</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-kanban"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card green">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Developers</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalDevelopers</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-code-slash"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card red">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Total Scans Made</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalScans</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-bar-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    }
+    else if (dashboardType == "ProjectManager")
+    {
+        <div class="dashboard-stat-grid four-col">
+            <div class="dashboard-stat-card blue">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Total Projects</div>
+                    <div class="dashboard-stat-value">@(ViewBag.TotalProjects ?? 0)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-folder2-open"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card purple">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Total Scans</div>
+                    <div class="dashboard-stat-value">@(ViewBag.TotalScans ?? 0)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card orange">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Pending Issues</div>
+                    <div class="dashboard-stat-value">@(ViewBag.PendingIssues ?? 0)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card green">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Resolved Issues</div>
+                    <div class="dashboard-stat-value">@(ViewBag.ResolvedIssues ?? 0)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="dashboard-stat-grid three-col">
+            <div class="dashboard-stat-card blue">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">My Total Scans</div>
+                    <div class="dashboard-stat-value">@ViewBag.TotalScans</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-clipboard-data"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card red">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Average Issues</div>
+                    <div class="dashboard-stat-value">@String.Format("{0:0.0}", ViewBag.AvgIssues)</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card green">
+                <div class="dashboard-stat-content">
+                    <div class="dashboard-stat-label">Assigned Projects</div>
+                    <div class="dashboard-stat-value">@ViewBag.MyProjects</div>
+                </div>
+                <div class="dashboard-stat-icon">
+                    <i class="bi bi-folder2-open"></i>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="app-card dashboard-chart-card inner-card">
+        <div class="section-header mb-3">
+            <div>
+                <h3 class="section-title small-title">
+                    @(dashboardType == "Admin" ? "Scanning Activity Trend" : "Issue Trend")
+                </h3>
+                <p class="section-subtitle">
+                    @(dashboardType == "Admin"
+                                        ? "Track recent scan activity across the platform."
+                                        : "Track recent issue counts and scan patterns.")
+                </p>
+            </div>
+        </div>
+
+        <div class="dashboard-chart-wrap">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const trendLabels = @Html.Raw(Json.Serialize(ViewBag.TrendLabels ?? new List<string>()));
+        const trendValues = @Html.Raw(Json.Serialize(ViewBag.TrendValues ?? new List<int>()));
+
+        if (trendLabels.length > 0) {
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: '@(dashboardType == "Admin" ? "Number of Scans" : "Issues")',
+                        data: trendValues,
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+}

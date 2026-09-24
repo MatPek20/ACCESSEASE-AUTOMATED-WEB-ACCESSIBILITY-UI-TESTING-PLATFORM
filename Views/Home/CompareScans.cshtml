@@ -1,0 +1,188 @@
+﻿@model AccessEase12.ViewModels.CompareScansViewModel
+
+@{
+    ViewData["Title"] = "Compare Scans";
+    Layout = "_Layout";
+}
+
+<div class="app-card">
+    <div class="section-header">
+        <div>
+            <p class="section-subtitle">
+            <p class="section-subtitle">
+                Compare two scan records to identify new, fixed, and unchanged issues.
+            </p>
+        </div>
+    </div>
+
+    <form method="get" asp-action="CompareScans" asp-controller="Home">
+        <div class="compare-top-grid">
+            <div class="form-block">
+                <label class="form-label">Scan A</label>
+                <select name="scanAId" class="form-input" required>
+                    <option value="">-- Select Scan A --</option>
+                    @foreach (var scan in Model.AvailableScans)
+                    {
+                        if (Model.ScanAId.HasValue && Model.ScanAId.Value == scan.Id)
+                        {
+                            <option value="@scan.Id" selected>
+                                #@scan.Id - @scan.Url (@scan.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="@scan.Id">
+                                #@scan.Id - @scan.Url (@scan.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="form-block">
+                <label class="form-label">Scan B</label>
+                <select name="scanBId" class="form-input" required>
+                    <option value="">-- Select Scan B --</option>
+                    @foreach (var scan in Model.AvailableScans)
+                    {
+                        if (Model.ScanBId.HasValue && Model.ScanBId.Value == scan.Id)
+                        {
+                            <option value="@scan.Id" selected>
+                                #@scan.Id - @scan.Url (@scan.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="@scan.Id">
+                                #@scan.Id - @scan.Url (@scan.ScanTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="compare-action-row">
+            <button type="submit" class="primary-btn compare-btn">Compare</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.ScanA != null && Model.ScanB != null)
+{
+    <div class="dashboard-stat-grid four-col">
+        <div class="dashboard-stat-card blue">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">Scan A Issues</div>
+                <div class="dashboard-stat-value">@Model.ScanAIssueCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card purple">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">Scan B Issues</div>
+                <div class="dashboard-stat-value">@Model.ScanBIssueCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-files"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card red">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">New Issues</div>
+                <div class="dashboard-stat-value">@Model.NewIssuesCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+        </div>
+
+        <div class="dashboard-stat-card green">
+            <div class="dashboard-stat-content">
+                <div class="dashboard-stat-label">Fixed Issues</div>
+                <div class="dashboard-stat-value">@Model.FixedIssuesCount</div>
+            </div>
+            <div class="dashboard-stat-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-alert mt-4 @(Model.ResultStatus == "Improved" ? "success" :
+                                          Model.ResultStatus == "Regressed" ? "danger" :
+                                          Model.ResultStatus == "Mixed" ? "warning" : "muted")">
+    <strong>Comparison Result:</strong> @Model.ResultStatus
+</div>
+
+    <div class="app-card inner-card mt-4">
+        <h3 class="section-title small-title">New Issues in Scan B</h3>
+    @if (!Model.NewIssues.Any())
+        {
+            <div class="empty-state-box"><p>No new issues found.</p></div>
+        }
+        else
+        {
+            @foreach (var issue in Model.NewIssues)
+            {
+                <div class="issue-card">
+                    <div class="issue-head">
+                        <strong>@issue.Rule</strong>
+                        <span class="badge bg-danger">New</span>
+                    </div>
+                    <div class="issue-meta">
+                        <div><strong>Target:</strong> <code>@issue.Target</code></div>
+                        <div><strong>Impact:</strong> @issue.Impact</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(issue.FixTip))
+                    {
+                        <div class="mini-alert info mt-3">@issue.FixTip</div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <div class="app-card inner-card mt-4">
+        <h3 class="section-title small-title">Fixed Issues from Scan A</h3>
+        @if (!Model.FixedIssues.Any())
+        {
+            <div class="empty-state-box"><p>No fixed issues found.</p></div>
+        }
+        else
+        {
+            @foreach (var issue in Model.FixedIssues)
+            {
+                <div class="issue-card">
+                    <div class="issue-head">
+                        <strong>@issue.Rule</strong>
+                        <span class="badge bg-success">Fixed</span>
+                    </div>
+                    <div class="issue-meta">
+                        <div><strong>Target:</strong> <code>@issue.Target</code></div>
+                        <div><strong>Impact:</strong> @issue.Impact</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(issue.FixTip))
+                    {
+                        <div class="mini-alert info mt-3">@issue.FixTip</div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <div class="app-card inner-card mt-4">
+        <h3 class="section-title small-title">Unchanged Issues</h3>
+        @if (!Model.UnchangedIssues.Any())
+        {
+            <div class="empty-state-box"><p>No unchanged issues found.</p></div>
+        }
+        else
+        {
+            <div class="app-alert muted">@Model.UnchangedIssuesCount unchanged issue(s) found.</div>
+        }
+    </div>
+}
