@@ -1,0 +1,127 @@
+﻿@model AccessEase.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login - AccessEase</title>
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="auth-page" id="authPage">
+        <header class="auth-topbar">
+            <a asp-controller="Home" asp-action="Welcome" class="brand-link">
+                <div class="brand brand-logo-wrap">
+                    <img src="~/images/logoAE.png" alt="AccessEase Logo" class="brand-logo auth-brand-logo" />
+                </div>
+            </a>
+
+            <button class="theme-btn" id="themeToggle" type="button" title="Change Theme">
+                <span id="themeIcon">☾</span>
+            </button>
+        </header>
+
+        <main class="auth-wrapper">
+            <div class="auth-left">
+                <div class="hero-badge">Secure Access. Smarter Testing.</div>
+
+                <h1 class="auth-title">
+                    Welcome back to<br />
+                    <span>AccessEase</span>
+                </h1>
+
+                <p class="auth-subtext">
+                    Sign in to continue your accessibility and UI validation workflow,
+                    review reports, and manage testing with confidence.
+                </p>
+            </div>
+
+            <div class="auth-card">
+                <div class="auth-card-header">
+                    <h2>Login</h2>
+                    <p>Access your account and continue testing.</p>
+                </div>
+
+                <form asp-action="Login" method="post" class="auth-form">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                    <div asp-validation-summary="All" class="validation-summary"></div>
+
+                    <div class="form-group">
+                        <label asp-for="Email"></label>
+                        <input asp-for="Email" class="form-input" placeholder="Enter your email" />
+                        <span asp-validation-for="Email" class="field-validation"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Password"></label>
+                        <input asp-for="Password" type="password" class="form-input" placeholder="Enter your password" />
+                        <span asp-validation-for="Password" class="field-validation"></span>
+                    </div>
+
+                    <button type="submit" class="auth-btn">Login</button>
+
+                    <div class="auth-footer">
+                        <span>Don’t have an account?</span>
+                        <a href="@Url.Action("Register", "Account")" id="registerLink">Register</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+            const storageKey = "accessease-theme";
+
+            function applyTheme(theme) {
+                html.setAttribute("data-theme", theme);
+                themeIcon.textContent = theme === "dark" ? "☀" : "☾";
+            }
+
+            const savedTheme = localStorage.getItem(storageKey);
+            if (savedTheme === "dark" || savedTheme === "light") {
+                applyTheme(savedTheme);
+            } else {
+                applyTheme("light");
+            }
+
+            toggleBtn.addEventListener("click", function () {
+                const currentTheme = html.getAttribute("data-theme");
+                const nextTheme = currentTheme === "dark" ? "light" : "dark";
+                applyTheme(nextTheme);
+                localStorage.setItem(storageKey, nextTheme);
+            });
+
+            const registerLink = document.getElementById("registerLink");
+            const authPage = document.getElementById("authPage");
+
+            if (registerLink && authPage) {
+                registerLink.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    const targetUrl = this.href;
+                    authPage.classList.add("page-fade-out");
+
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 500);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

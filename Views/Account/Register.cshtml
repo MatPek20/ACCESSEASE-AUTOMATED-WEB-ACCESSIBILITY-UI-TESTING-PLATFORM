@@ -1,0 +1,121 @@
+﻿@model AccessEase.Models.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Register - AccessEase</title>
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="auth-page">
+        <header class="auth-topbar">
+            <a asp-controller="Home" asp-action="Welcome" class="brand-link">
+                <div class="brand brand-logo-wrap">
+                    <img src="~/images/logoAE.png" alt="AccessEase Logo" class="brand-logo auth-brand-logo" />
+                </div>
+            </a>
+
+            <button class="theme-btn" id="themeToggle" type="button" title="Change Theme">
+                <span id="themeIcon">☾</span>
+            </button>
+        </header>
+
+        <main class="auth-wrapper">
+            <div class="auth-left">
+                <div class="hero-badge">Create Account. Start Testing.</div>
+
+                <h1 class="auth-title">
+                    Join<br />
+                    <span>AccessEase</span>
+                </h1>
+
+                <p class="auth-subtext">
+                    Create your account to start accessibility and UI validation testing,
+                    manage projects, and improve website quality more effectively.
+                </p>
+            </div>
+
+            <div class="auth-card">
+                <div class="auth-card-header">
+                    <h2>Register</h2>
+                    <p>Create a new account to access the platform.</p>
+                </div>
+
+                <form asp-action="Register" method="post" class="auth-form">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All" class="validation-summary"></div>
+
+                    <div class="form-group">
+                        <label asp-for="FullName"></label>
+                        <input asp-for="FullName" class="form-input" placeholder="Enter your full name" />
+                        <span asp-validation-for="FullName" class="field-validation"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Email"></label>
+                        <input asp-for="Email" class="form-input" placeholder="Enter your email" />
+                        <span asp-validation-for="Email" class="field-validation"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Password"></label>
+                        <input asp-for="Password" type="password" class="form-input" placeholder="Create your password" />
+                        <span asp-validation-for="Password" class="field-validation"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="ConfirmPassword"></label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-input" placeholder="Confirm your password" />
+                        <span asp-validation-for="ConfirmPassword" class="field-validation"></span>
+                    </div>
+
+                    <button type="submit" class="auth-btn">Create Account</button>
+
+                    <div class="auth-footer">
+                        <span>Already have an account?</span>
+                        <a asp-controller="Account" asp-action="Login">Login</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+            const storageKey = "accessease-theme";
+
+            function applyTheme(theme) {
+                html.setAttribute("data-theme", theme);
+                themeIcon.textContent = theme === "dark" ? "☀" : "☾";
+            }
+
+            const savedTheme = localStorage.getItem(storageKey);
+            if (savedTheme === "dark" || savedTheme === "light") {
+                applyTheme(savedTheme);
+            } else {
+                applyTheme("light");
+            }
+
+            toggleBtn.addEventListener("click", function () {
+                const currentTheme = html.getAttribute("data-theme");
+                const nextTheme = currentTheme === "dark" ? "light" : "dark";
+                applyTheme(nextTheme);
+                localStorage.setItem(storageKey, nextTheme);
+            });
+        })();
+    </script>
+</body>
+</html>

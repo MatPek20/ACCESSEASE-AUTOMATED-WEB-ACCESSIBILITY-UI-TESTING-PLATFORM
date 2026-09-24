@@ -1,0 +1,100 @@
+﻿@model AccessEase12.ViewModels.EditProfileViewModel
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "My Profile";
+    Layout = "_Layout";
+
+    var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+    var initials = !string.IsNullOrWhiteSpace(Model.FullName)
+        ? string.Join("", Model.FullName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x[0]))
+            .ToUpper()
+        : "U";
+}
+
+<div class="profile-page-grid">
+    <div class="app-card profile-summary-card">
+        <div class="profile-summary-top">
+            <div class="profile-avatar-circle">
+                @initials
+            </div>
+
+            <div>
+                <h2 class="profile-name">@Model.FullName</h2>
+                <div class="profile-role-badge">@role</div>
+            </div>
+        </div>
+
+        <div class="profile-summary-info">
+            <div class="profile-info-item">
+                <span class="profile-info-label">Email</span>
+                <span class="profile-info-value">@Model.Email</span>
+            </div>
+
+            <div class="profile-info-item">
+                <span class="profile-info-label">Phone Number</span>
+                <span class="profile-info-value">
+                    @(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)
+                </span>
+            </div>
+        </div>
+
+        <div class="profile-summary-note">
+            Manage your personal details and account settings from this page.
+        </div>
+    </div>
+
+    <div class="app-card profile-form-card">
+        <div class="section-header compact-page-header">
+            <div>
+                <p class="section-subtitle mb-0">
+                    Update your personal details and manage your account settings.
+                </p>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="app-alert success">
+                @TempData["Success"]
+            </div>
+        }
+
+        <form asp-action="Profile" method="post" class="profile-form-grid">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="app-alert danger validation-summary"></div>
+
+            <div class="form-block">
+                <label asp-for="FullName" class="form-label fw-semibold"></label>
+                <input asp-for="FullName" class="form-input" placeholder="Enter your full name" />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <div class="form-block">
+                <label asp-for="Email" class="form-label fw-semibold"></label>
+                <input asp-for="Email" class="form-input" placeholder="Enter your email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="form-block full">
+                <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+                <input asp-for="PhoneNumber" class="form-input" placeholder="Optional" />
+                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+            </div>
+
+            <div class="profile-action-row">
+                <button type="submit" class="primary-btn">Save Changes</button>
+                <a asp-controller="Account" asp-action="ChangePassword" class="warning-btn profile-btn-inline">Change Password</a>
+                <a asp-controller="Home" asp-action="Dashboard" class="secondary-btn profile-btn-inline">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

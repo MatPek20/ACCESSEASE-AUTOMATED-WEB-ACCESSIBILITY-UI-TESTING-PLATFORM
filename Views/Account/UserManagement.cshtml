@@ -1,0 +1,83 @@
+﻿@model List<AccessEase12.ViewModels.UserManagementViewModel>
+
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["Success"]
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">
+                    @TempData["Error"]
+                </div>
+            }
+
+            @if (Model == null || !Model.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    No users found.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Created At</th>
+                                <th style="width: 220px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td>@user.Id</td>
+                                    <td>@user.FullName</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <span class="badge @(user.Role == "ProjectManager" ? "bg-danger" : "bg-primary")">
+                                            @user.Role
+                                        </span>
+                                    </td>
+                                    <td>@user.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <form asp-action="UpdateUserRole" method="post" class="d-flex gap-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@user.Id" />
+
+                                            <select name="role" class="form-select form-select-sm">
+                                                <option value="Developer" selected="@(user.Role == "Developer")">Developer</option>
+                                                <option value="ProjectManager" selected="@(user.Role == "ProjectManager")">Project Manager</option>
+                                            </select>
+
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                Save
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
